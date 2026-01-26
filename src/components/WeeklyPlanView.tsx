@@ -285,10 +285,10 @@ export function WeeklyPlanView({ plan, onPlanUpdate, onRetest, onViewResults }: 
   const [selectedDay, setSelectedDay] = useState<TrainingDay | null>(null);
   const [progress, setProgress] = useState<PlanProgress | null>(null);
   const [weekCompletions, setWeekCompletions] = useState<Map<DayOfWeek, boolean>>(new Map());
-
-  const currentDay = getCurrentDayOfWeek();
+  const [currentDay, setCurrentDay] = useState<DayOfWeek | null>(null);
 
   useEffect(() => {
+    setCurrentDay(getCurrentDayOfWeek());
     setProgress(calculateProgress(plan));
     setWeekCompletions(getWeekCompletions(plan));
   }, [plan]);

@@ -26,14 +26,16 @@ export function AssessmentFlow() {
 
   const [viewState, setViewState] = useState<ViewState>('assessment');
   const [trainingPlan, setTrainingPlan] = useState<TrainingPlan | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Load existing plan on mount
+  // Load existing plan on mount (client-side only)
   useEffect(() => {
     const existingPlan = loadPlan();
     if (existingPlan) {
       setTrainingPlan(existingPlan);
       setViewState('training-plan');
     }
+    setIsHydrated(true);
   }, []);
 
   // Update view state when assessment completes
@@ -81,6 +83,18 @@ export function AssessmentFlow() {
     reset();
     setViewState('assessment');
   };
+
+  // Show loading state until hydrated
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show training plan if exists
   if (viewState === 'training-plan' && trainingPlan) {
