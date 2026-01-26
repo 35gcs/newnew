@@ -7,6 +7,7 @@ import { Exercise, MovementDysfunction, BodyRegion } from '@/types/assessment';
 interface ResultsDashboardProps {
   analysis: RecommendationResult;
   onReset: () => void;
+  onCreatePlan: () => void;
 }
 
 const dysfunctionLabels: Record<MovementDysfunction, string> = {
@@ -181,7 +182,7 @@ function ExerciseCard({
   );
 }
 
-export function ResultsDashboard({ analysis, onReset }: ResultsDashboardProps) {
+export function ResultsDashboard({ analysis, onReset, onCreatePlan }: ResultsDashboardProps) {
   const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<'all' | 'essential' | 'recommended' | 'beneficial'>('all');
 
@@ -378,11 +379,29 @@ export function ResultsDashboard({ analysis, onReset }: ResultsDashboardProps) {
         </ul>
       </div>
 
+      {/* Create Plan CTA */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 mb-8 text-white">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-bold mb-1">Ready to Start Your Program?</h3>
+            <p className="text-blue-100">
+              Create a weekly training plan with daily workouts and track your progress over 30 days.
+            </p>
+          </div>
+          <button
+            onClick={onCreatePlan}
+            className="px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors whitespace-nowrap"
+          >
+            Create Training Plan
+          </button>
+        </div>
+      </div>
+
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <button
           onClick={onReset}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          className="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
           Take Assessment Again
         </button>
