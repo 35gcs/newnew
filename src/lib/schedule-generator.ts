@@ -10,6 +10,7 @@ import {
   getTodayString,
 } from '@/types/training-plan';
 import { RecommendationResult } from './recommendation-engine';
+import { exercises as allExercises } from './exercises';
 
 // Optimal training day distributions based on days per week
 const TRAINING_DAY_PATTERNS: Record<number, DayOfWeek[]> = {
@@ -186,4 +187,59 @@ export function getTrainingDayOptions(): { value: number; label: string }[] {
     { value: 6, label: '6 days per week' },
     { value: 7, label: 'Every day' },
   ];
+}
+
+export function createDemoPlan(trainingDaysPerWeek: number): TrainingPlan {
+  const today = getTodayString();
+  const trainingDays = TRAINING_DAY_PATTERNS[trainingDaysPerWeek] || TRAINING_DAY_PATTERNS[3];
+
+  // Pick a variety of demo exercises
+  const demoExerciseIds = [
+    'wall-ankle-mobilization',
+    '90-90-hip-stretch',
+    'hip-flexor-stretch',
+    'cat-cow',
+    'dead-bug',
+    'glute-bridge',
+  ];
+
+  const demoExercises = demoExerciseIds
+    .map(id => allExercises.find(e => e.id === id))
+    .filter((e): e is Exercise => e !== undefined);
+
+  // Create exercises with priority
+  const exercisesWithPriority: ExerciseWithPriority[] = demoExercises.map((exercise, index) => ({
+    exercise,
+    priority: index < 2 ? 'essential' : index < 4 ? 'recommended' : 'beneficial',
+    frequency: parseExerciseFrequency(exercise),
+  }));
+
+  // Distribute exercises across training days
+  const exerciseDistribution = distributeExercises(exercisesWithPriority, trainingDays);
+
+  // Build the weekly schedule
+  const days: TrainingDay[] = DAYS_OF_WEEK.map(dayOfWeek => {
+    const isTrainingDay = trainingDays.includes(dayOfWeek);
+    return {
+      dayOfWeek,
+      exercises: exerciseDistribution.get(dayOfWeek) || [],
+      isRestDay: !isTrainingDay,
+    };
+  });
+
+  const weeklySchedule: WeeklySchedule = {
+    days,
+    trainingDaysPerWeek,
+  };
+
+  return {
+    id: `plan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    createdAt: new Date().toISOString(),
+    assessmentDate: today,
+    retestDate: getRetestDate(today),
+    trainingDaysPerWeek,
+    weeklySchedule,
+    completionHistory: [],
+    exerciseIds: demoExercises.map(e => e.id),
+  };
 }

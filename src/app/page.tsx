@@ -13,6 +13,12 @@ export default function Home() {
           >
             Start Assessment
           </Link>
+          <Link
+            href="/training"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+          >
+            My Training Plan
+          </Link>
         </nav>
       </header>
 
