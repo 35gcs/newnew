@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { TrainingPlan, DayCompletion, DAYS_OF_WEEK, DayOfWeek } from '@/types/training-plan';
+import { TrainingPlan, DayCompletion } from '@/types/training-plan';
 
 interface CalendarProps {
   plan: TrainingPlan;
