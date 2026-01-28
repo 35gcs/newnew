@@ -30,6 +30,7 @@ export interface DayCompletion {
   dayOfWeek: DayOfWeek;
   completed: boolean;
   exercisesCompleted: string[]; // exercise IDs
+  notes?: string; // user notes for this session
 }
 
 export interface TrainingPlan {

@@ -15,7 +15,10 @@ import {
   markDayComplete,
   isDayCompletedToday,
   getWeekCompletions,
+  updateNotes,
+  getNotesForDate,
 } from '@/lib/plan-storage';
+import { Calendar } from './Calendar';
 
 interface WeeklyPlanViewProps {
   plan: TrainingPlan;
@@ -164,13 +167,16 @@ function ExerciseModal({
   isCompleted,
   onClose,
   onComplete,
+  existingNotes,
 }: {
   day: TrainingDay;
   isCompleted: boolean;
   onClose: () => void;
-  onComplete: () => void;
+  onComplete: (notes?: string) => void;
+  existingNotes?: string;
 }) {
   const [checkedExercises, setCheckedExercises] = useState<Set<string>>(new Set());
+  const [notes, setNotes] = useState(existingNotes || '');
 
   const toggleExercise = (id: string) => {
     setCheckedExercises(prev => {
@@ -261,10 +267,25 @@ function ExerciseModal({
           </div>
         </div>
 
+        {/* Notes section */}
+        <div className="p-4 border-t border-gray-200">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Session Notes
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="How did the workout feel? Any pain or discomfort? What went well?"
+            className="w-full p-3 border border-gray-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            rows={3}
+            disabled={isCompleted}
+          />
+        </div>
+
         {isToday && !isCompleted && (
           <div className="p-4 border-t border-gray-200">
             <button
-              onClick={onComplete}
+              onClick={() => onComplete(notes)}
               disabled={!allChecked}
               className={`w-full py-3 rounded-lg font-medium transition-colors ${
                 allChecked
@@ -281,11 +302,22 @@ function ExerciseModal({
   );
 }
 
+interface DateModalData {
+  date: string;
+  completion?: {
+    completed: boolean;
+    notes?: string;
+    exercisesCompleted: string[];
+  };
+}
+
 export function WeeklyPlanView({ plan, onPlanUpdate, onRetest, onViewResults }: WeeklyPlanViewProps) {
   const [selectedDay, setSelectedDay] = useState<TrainingDay | null>(null);
   const [progress, setProgress] = useState<PlanProgress | null>(null);
   const [weekCompletions, setWeekCompletions] = useState<Map<DayOfWeek, boolean>>(new Map());
   const [currentDay, setCurrentDay] = useState<DayOfWeek | null>(null);
+  const [selectedDateModal, setSelectedDateModal] = useState<DateModalData | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   useEffect(() => {
     setCurrentDay(getCurrentDayOfWeek());
@@ -293,11 +325,16 @@ export function WeeklyPlanView({ plan, onPlanUpdate, onRetest, onViewResults }: 
     setWeekCompletions(getWeekCompletions(plan));
   }, [plan]);
 
-  const handleComplete = (day: TrainingDay) => {
+  const handleComplete = (day: TrainingDay, notes?: string) => {
     const exerciseIds = day.exercises.map(e => e.exerciseId);
-    const updatedPlan = markDayComplete(plan, day.dayOfWeek, exerciseIds);
+    const updatedPlan = markDayComplete(plan, day.dayOfWeek, exerciseIds, notes);
     onPlanUpdate(updatedPlan);
     setSelectedDay(null);
+  };
+
+  const handleSaveNotes = (date: string, dayOfWeek: DayOfWeek, notes: string) => {
+    const updatedPlan = updateNotes(plan, date, dayOfWeek, notes);
+    onPlanUpdate(updatedPlan);
   };
 
   const isCompletedToday = (dayOfWeek: DayOfWeek) => isDayCompletedToday(plan, dayOfWeek);
@@ -331,7 +368,49 @@ export function WeeklyPlanView({ plan, onPlanUpdate, onRetest, onViewResults }: 
       {/* Progress Card */}
       {progress && <ProgressCard progress={progress} retestDate={plan.retestDate} />}
 
+      {/* View Toggle */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setShowCalendar(false)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            !showCalendar
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Week View
+        </button>
+        <button
+          onClick={() => setShowCalendar(true)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            showCalendar
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Calendar
+        </button>
+      </div>
+
+      {/* Calendar View */}
+      {showCalendar && (
+        <Calendar
+          plan={plan}
+          onSelectDate={(date, completion) => {
+            setSelectedDateModal({
+              date,
+              completion: completion ? {
+                completed: completion.completed,
+                notes: completion.notes,
+                exercisesCompleted: completion.exercisesCompleted,
+              } : undefined,
+            });
+          }}
+        />
+      )}
+
       {/* Week View */}
+      {!showCalendar && (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">This Week</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
@@ -348,6 +427,7 @@ export function WeeklyPlanView({ plan, onPlanUpdate, onRetest, onViewResults }: 
           ))}
         </div>
       </div>
+      )}
 
       {/* Exercise Modal */}
       {selectedDay && (
@@ -355,9 +435,143 @@ export function WeeklyPlanView({ plan, onPlanUpdate, onRetest, onViewResults }: 
           day={selectedDay}
           isCompleted={weekCompletions.get(selectedDay.dayOfWeek) || false}
           onClose={() => setSelectedDay(null)}
-          onComplete={() => handleComplete(selectedDay)}
+          onComplete={(notes) => handleComplete(selectedDay, notes)}
+          existingNotes={getNotesForDate(plan, new Date().toISOString().split('T')[0])}
         />
       )}
+
+      {/* Date Detail Modal */}
+      {selectedDateModal && (
+        <DateDetailModal
+          date={selectedDateModal.date}
+          completion={selectedDateModal.completion}
+          plan={plan}
+          onClose={() => setSelectedDateModal(null)}
+          onSaveNotes={(notes) => {
+            const date = new Date(selectedDateModal.date);
+            const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            handleSaveNotes(selectedDateModal.date, days[date.getDay()], notes);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DateDetailModal({
+  date,
+  completion,
+  plan,
+  onClose,
+  onSaveNotes,
+}: {
+  date: string;
+  completion?: { completed: boolean; notes?: string; exercisesCompleted: string[] };
+  plan: TrainingPlan;
+  onClose: () => void;
+  onSaveNotes: (notes: string) => void;
+}) {
+  const [notes, setNotes] = useState(completion?.notes || '');
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const dateObj = new Date(date);
+  const formattedDate = dateObj.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  const handleNotesChange = (value: string) => {
+    setNotes(value);
+    setHasChanges(value !== (completion?.notes || ''));
+  };
+
+  const handleSave = () => {
+    onSaveNotes(notes);
+    setHasChanges(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl max-w-lg w-full overflow-hidden">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">{formattedDate}</h2>
+            {completion?.completed ? (
+              <span className="inline-flex items-center gap-1 text-sm text-green-600">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Workout completed
+              </span>
+            ) : (
+              <span className="text-sm text-gray-500">No workout recorded</span>
+            )}
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="p-4">
+          {completion?.completed && completion.exercisesCompleted.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Exercises Completed</h3>
+              <div className="space-y-1">
+                {completion.exercisesCompleted.map((id) => {
+                  const exercise = plan.weeklySchedule.days
+                    .flatMap(d => d.exercises)
+                    .find(e => e.exerciseId === id);
+                  return (
+                    <div key={id} className="flex items-center gap-2 text-sm text-gray-600">
+                      <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      {exercise?.exercise.name || id}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Notes
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => handleNotesChange(e.target.value)}
+              placeholder="Add notes about this day..."
+              className="w-full p-3 border border-gray-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              rows={4}
+            />
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!hasChanges}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              hasChanges
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            Save Notes
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

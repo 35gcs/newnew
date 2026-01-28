@@ -35,7 +35,8 @@ export function clearPlan(): void {
 export function markDayComplete(
   plan: TrainingPlan,
   dayOfWeek: DayOfWeek,
-  exerciseIds: string[]
+  exerciseIds: string[],
+  notes?: string
 ): TrainingPlan {
   const today = getTodayString();
 
@@ -49,6 +50,7 @@ export function markDayComplete(
     dayOfWeek,
     completed: true,
     exercisesCompleted: exerciseIds,
+    notes,
   };
 
   let updatedHistory: DayCompletion[];
@@ -66,6 +68,48 @@ export function markDayComplete(
 
   savePlan(updatedPlan);
   return updatedPlan;
+}
+
+export function updateNotes(
+  plan: TrainingPlan,
+  date: string,
+  dayOfWeek: DayOfWeek,
+  notes: string
+): TrainingPlan {
+  const existingIndex = plan.completionHistory.findIndex(
+    c => c.date === date && c.dayOfWeek === dayOfWeek
+  );
+
+  let updatedHistory: DayCompletion[];
+  if (existingIndex >= 0) {
+    updatedHistory = [...plan.completionHistory];
+    updatedHistory[existingIndex] = {
+      ...updatedHistory[existingIndex],
+      notes,
+    };
+  } else {
+    // Create a new entry for notes even if not completed
+    updatedHistory = [...plan.completionHistory, {
+      date,
+      dayOfWeek,
+      completed: false,
+      exercisesCompleted: [],
+      notes,
+    }];
+  }
+
+  const updatedPlan = {
+    ...plan,
+    completionHistory: updatedHistory,
+  };
+
+  savePlan(updatedPlan);
+  return updatedPlan;
+}
+
+export function getNotesForDate(plan: TrainingPlan, date: string): string | undefined {
+  const entry = plan.completionHistory.find(c => c.date === date);
+  return entry?.notes;
 }
 
 export function unmarkDayComplete(
