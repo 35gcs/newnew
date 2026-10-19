@@ -7,20 +7,40 @@ export default function Home() {
       <header className="px-4 py-6">
         <nav className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="text-xl font-bold text-blue-600">MovementRx</div>
-          <Link
-            href="/assessment"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            Start Assessment
-          </Link>
-          <Link
-            href="/training"
-            className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-          >
-            My Training Plan
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              href="/assessment"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              Start Assessment
+            </Link>
+            <Link
+              href="/training"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+            >
+              Running Dashboard
+            </Link>
+          </div>
         </nav>
       </header>
+
+      {/* Running Dashboard Banner */}
+      <div className="max-w-6xl mx-auto px-4 py-4">
+        <Link
+          href="/training"
+          className="block bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold mb-1">Running Dashboard</h2>
+              <p className="text-green-100">View your running stats, calendar, and weekly progress</p>
+            </div>
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </div>
+        </Link>
+      </div>
 
       {/* Hero Section */}
       <main className="max-w-6xl mx-auto px-4 py-16">
